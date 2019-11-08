@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 {
     int sock;
     SSL_CTX *ctx;
+    char buf [4096];
 
     init_openssl();
     ctx = create_context();
@@ -105,6 +106,7 @@ int main(int argc, char **argv)
             perror("Unable to accept");
             exit(EXIT_FAILURE);
         }
+	printf("Connection from %x, port %x\n", addr.sin_addr.s_addr, addr.sin_port);
 
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
@@ -113,6 +115,8 @@ int main(int argc, char **argv)
             ERR_print_errors_fp(stderr);
         }
         else {
+	    SSL_read(ssl,buf, sizeof(buf)-1);
+	    printf("Received message: '%s'\n", buf);
             SSL_write(ssl, reply, strlen(reply));
         }
 
