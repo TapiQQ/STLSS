@@ -6,6 +6,10 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#define RETURN_NULL(x) if ((x)==NULL) exit (1)
+#define RETURN_ERR(err,s) if ((err)==-1) { perror(s); exit(1); }
+#define RETURN_SSL(err) if ((err)==-1) { ERR_print_errors_fp(stderr); exit(1); }
+
 
 int create_socket(int port)
 {
@@ -107,9 +111,12 @@ int main(int argc, char **argv)
 	printf("Socket Created on port 4433\n");
 	
 	ssl = SSL_new(ctx);
+	RETURN_NULL(ssl);
+	
 	SSL_set_fd(ssl, sock);
 	
 	err = SSL_connect(ssl);
+	RETURN_SSL(err);
 	
 	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
 	
@@ -120,10 +127,12 @@ int main(int argc, char **argv)
 		printf ("Server certificate:\n");
 
 		str = X509_NAME_oneline(X509_get_subject_name(server_cert),0,0);
+		RETURN_NULL(str);
 		printf ("\t subject: %s\n", str);
 		free (str);
  
 		str = X509_NAME_oneline(X509_get_issuer_name(server_cert),0,0);
+		RETURN_NULL(str);
 		printf ("\t issuer: %s\n", str);
 		free(str);
  
@@ -135,14 +144,18 @@ int main(int argc, char **argv)
 			
 			
 	err = SSL_write(ssl, hello, strlen(hello)); 
+	RETURN_SSL(err);
 	
 	err = SSL_read(ssl, buf, sizeof(buf)-1);   
+	RETURN_SSL(err);
   	buf[err] = '\0';
   	printf ("Received %d chars:'%s'\n", err, buf);
 	
 	err = SSL_shutdown(ssl);
+	RETURN_SSL(err);
 	
 	err = close(sock);
+	RETURN_SSL(err);
 	
 	SSL_free(ssl);
 	SSL_CTX_free(ctx);
