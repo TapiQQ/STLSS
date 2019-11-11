@@ -59,7 +59,32 @@ SSL_CTX *create_context()
 	return ctx;
 }
 
-
+void configure_context(SSL_CTX *ctx)
+{
+	if (SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+	
+	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+ 
+	if (!SSL_CTX_check_private_key(ctx)) {
+		fprintf(stderr,"Private key does not match the certificate public key\n");
+		exit(1);
+	}
+	
+	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
+       	ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+	
+	SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
+	
+	SSL_CTX_set_verify_depth(ctx,1);
+}
 
 
 void main()
@@ -83,44 +108,11 @@ void main()
 	
 	ctx = create_context();
 	RETURN_NULL(ctx);
+
+	configure_context(ctx);
 	
 	
-
-	if (SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, SSL_FILETYPE_PEM) <= 0) {
-		ERR_print_errors_fp(stderr);
-		exit(1);
-	}
-
-	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, 
-  SSL_FILETYPE_PEM) <= 0) {
-			ERR_print_errors_fp(stderr);
-			exit(1);
-	}
- 
-	if (!SSL_CTX_check_private_key(ctx)) {
-			fprintf(stderr,"Private key does not match the certificate public key\n");
-			exit(1);
-	}
-
-
-	/* Load the RSA CA certificate into the SSL_CTX structure */
-	/* This will allow this client to verify the server's     */
-	/* certificate.                                           */
-
-	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
-       	        ERR_print_errors_fp(stderr);
-       	        exit(1);
-	}
- 
-        /* Set flag in context to require peer (server) certificate */
-        /* verification */
- 
-        SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
- 
-        SSL_CTX_set_verify_depth(ctx,1);
-  	/* ------------------------------------------------------------- */
-  	/* Set up a TCP socket */
- 
+	
   	sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);       
  
 	RETURN_ERR(sock, "socket");
