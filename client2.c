@@ -15,7 +15,7 @@ int create_socket(int port)
 	memset (&addr, '\0', sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = "10.0.1.1";
+    addr.sin_addr.s_addr = inet_addr("10.0.1.1");
 
     s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (s < 0) {
