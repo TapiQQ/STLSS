@@ -25,8 +25,6 @@ int create_socket(int port)
 	
 	s = connect(s, (struct sockaddr*) &addr, sizeof(addr));
 
-	
-
     return s;
 }
 
@@ -79,7 +77,7 @@ void configure_context(SSL_CTX *ctx)
 
 int main(int argc, char **argv)
 {
-	
+	int err;
 	int sock;
     SSL_CTX *ctx;
     char buf [4096];
@@ -105,5 +103,53 @@ int main(int argc, char **argv)
     sock = create_socket(4433);
 	printf("Socket Created on port 4433\n");
 	
+	ssl = SSL_new(ctx);
+	SSL_set_fd(ssl, sock);
+	
+	err = SSL_connect(ssl);
+	RETURN_SSL(err);
+	
+	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
+	
+	server_cert = SSL_get_peer_certificate (ssl);  
+	
+		if (server_cert != NULL)
+        {
+		printf ("Server certificate:\n");
 
+		str = X509_NAME_oneline(X509_get_subject_name(server_cert),0,0);
+		RETURN_NULL(str);
+		printf ("\t subject: %s\n", str);
+		free (str);
+ 
+		str = X509_NAME_oneline(X509_get_issuer_name(server_cert),0,0);
+		RETURN_NULL(str);
+		printf ("\t issuer: %s\n", str);
+		free(str);
+ 
+		X509_free (server_cert);
+
+	}
+        else
+                printf("The SSL server does not have certificate.\n");
+			
+			
+	err = SSL_write(ssl, hello, strlen(hello)); 
+	RETURN_SSL(err);
+	
+	err = SSL_read(ssl, buf, sizeof(buf)-1);   
+	RETURN_SSL(err);
+  	buf[err] = '\0';
+  	printf ("Received %d chars:'%s'\n", err, buf);
+	
+	err = SSL_shutdown(ssl);
+    RETURN_SSL(err);
+	
+	err = close(sock);
+	RETURN_ERR(err, "close");
+	
+	SSL_free(ssl);
+	SSL_CTX_free(ctx);
+	cleanup_openssl();
+	
 }
