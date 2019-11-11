@@ -34,19 +34,7 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
-int create_socket()
-{
-	int s;
-	struct sockaddr_in server_addr;
-	
-	s = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
-	RETURN_ERR(s, "socket");
-	
-	memset (&server_addr, '\0', sizeof(server_addr));
-	server_addr.sin_family      = AF_INET;
-	server_addr.sin_port        = htons(4433);
-  	server_addr.sin_addr.s_addr = inet_addr("10.0.1.1");
-}
+
 
 void init_openssl()
 { 
@@ -126,7 +114,13 @@ void main()
 	
 
 	
-  	sock = create_socket();
+  	sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
+	RETURN_ERR(s, "socket");
+	
+	memset (&server_addr, '\0', sizeof(server_addr));
+	server_addr.sin_family      = AF_INET;
+	server_addr.sin_port        = htons(4433);
+  	server_addr.sin_addr.s_addr = inet_addr("10.0.1.1");
  
 	/* Establish a TCP/IP connection to the SSL client */
  
