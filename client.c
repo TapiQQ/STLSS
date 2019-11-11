@@ -84,7 +84,7 @@ void create_ssl_connection(SSL_CTX *ctx, int sock)
   	printf ("Received %d chars:'%s'\n", err, buf);
 	
 	err = SSL_shutdown(ssl);
-    RETURN_SSL(err);
+	RETURN_SSL(err);
 	SSL_free(ssl);
 }
 
