@@ -37,9 +37,10 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 int create_socket()
 {
 	int s;
+	struct sockaddr_in server_addr;
 	
 	s = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
-	RETURN_ERR(sock, "socket");
+	RETURN_ERR(s, "socket");
 	
 	memset (&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family      = AF_INET;
