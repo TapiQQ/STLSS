@@ -38,12 +38,12 @@ void main()
 {
   	int 	err;
 
-  	int 	verify_client = OFF; /* To verify a client certificate, set ON */
+  	int 	verify_client = ON; /* To verify a client certificate, set ON */
   	int 	sock;
 	  struct sockaddr_in server_addr;
 	  char	*str;
   	char  	buf [4096];
-  	char 	hello[80];
+  	char 	hello[80] = "asd";
 
 	SSL_CTX 	*ctx;
         SSL     	*ssl;
@@ -54,9 +54,10 @@ void main()
 	short int 	s_port = 4433;
 	const char	*s_ipaddr = "10.0.1.1";
  
+ 
+ 
+ 
 	/*----------------------------------------------------------*/
-  	printf ("Message to be sent to the SSL server: ");
-  	fgets (hello, 80, stdin);
  
 	/* Load encryption & hashing algorithms for the SSL program */
 	SSL_library_init();
@@ -71,6 +72,9 @@ void main()
   	ctx = SSL_CTX_new(meth);                        
  
 	RETURN_NULL(ctx);
+	
+	
+	
 	/*----------------------------------------------------------*/
 	if(verify_client == ON)
  
