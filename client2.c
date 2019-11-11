@@ -12,25 +12,22 @@ int create_socket(int port)
     int s;
     struct sockaddr_in addr;
 
+	memset (&addr, '\0', sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_addr.s_addr = htonl("10.0.1.1");
 
-    s = socket(AF_INET, SOCK_STREAM, 0);
+    s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (s < 0) {
 	perror("Unable to create socket");
 	exit(EXIT_FAILURE);
     }
-
-    if (bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-	perror("Unable to bind");
-	exit(EXIT_FAILURE);
-    }
-
-    if (listen(s, 1) < 0) {
-	perror("Unable to listen");
-	exit(EXIT_FAILURE);
-    }
+	
+	CHK_ERR(s, "socket");
+	
+	err = connect(s, (struct sockaddr*) &addr, sizeof(addr));
+	CHK_ERR(err, "connect");
+	
 
     return s;
 }
@@ -97,13 +94,18 @@ int main(int argc, char **argv)
 	
 	ctx = create_context();
 	configure_context(ctx);
-
-    sock = create_socket(4433);
-	printf("Socket Created on port 4433\n");
 	
 	if (!SSL_CTX_load_verify_locations(ctx, "cert.crt", NULL)) {
        	        ERR_print_errors_fp(stderr);
        	        exit(1);
 	}
+	
+	SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
+ 
+    SSL_CTX_set_verify_depth(ctx,1);
+
+    sock = create_socket(4433);
+	printf("Socket Created on port 4433\n");
+	
 
 }
