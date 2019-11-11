@@ -38,7 +38,7 @@ int create_socket(int port)
 
 void init_openssl()
 { 
-	SSL_library_init();
+    SSL_library_init();
     SSL_load_error_strings();	
     OpenSSL_add_ssl_algorithms();
 }
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 	init_openssl();
 	
 	ctx = create_context();
-	configure_context(ctx);
+	//configure_context(ctx);
 	
 	if (!SSL_CTX_load_verify_locations(ctx, "cert.crt", NULL)) {
        	        ERR_print_errors_fp(stderr);
@@ -113,15 +113,15 @@ int main(int argc, char **argv)
 
     sock = create_socket(4433);
 	printf("Socket Created on port 4433\n");
-	
+
 	ssl = SSL_new(ctx);
 	RETURN_NULL(ssl);
 	
 	SSL_set_fd(ssl, sock);
 	
 	err = SSL_connect(ssl);
-	print("%d\n" err);
-	
+	RETURN_SSL(err);
+
 	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
 	
 	server_cert = SSL_get_peer_certificate(ssl);  
