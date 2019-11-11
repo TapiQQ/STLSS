@@ -115,7 +115,7 @@ void main()
 
 	
   	sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
-	RETURN_ERR(s, "socket");
+	RETURN_ERR(sock, "socket");
 	
 	memset (&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family      = AF_INET;
