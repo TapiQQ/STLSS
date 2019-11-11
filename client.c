@@ -106,7 +106,6 @@ void main()
   	int 	err;
 	SSL_CTX *ctx;
   	int 	sock;
-	struct sockaddr_in server_addr;
 	char	*str;
   	char  	buf [4096];
   	char 	hello[80] = "asd";
