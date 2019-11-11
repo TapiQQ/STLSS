@@ -34,7 +34,7 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
-void create_ssl_connection(SSL_CTX *ctx, int sock)
+void *create_ssl_connection(SSL_CTX *ctx, int sock)
 {
 	int 	err;
 	SSL		*ssl;
@@ -85,6 +85,7 @@ void create_ssl_connection(SSL_CTX *ctx, int sock)
 	
 	err = SSL_shutdown(ssl);
     RETURN_SSL(err);
+	SSL_free(ssl);
 }
 
 void init_openssl()
@@ -148,9 +149,6 @@ void main()
 	struct sockaddr_in server_addr;
 
 
-        SSL     	*ssl;
-        EVP_PKEY        *pkey;
-
 
  
 	init_openssl();
@@ -159,8 +157,6 @@ void main()
 	RETURN_NULL(ctx);
 
 	configure_context(ctx);
-	
-
 	
   	sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
 	RETURN_ERR(sock, "socket");
@@ -176,67 +172,9 @@ void main()
 
 	
 	create_ssl_connection(ctx, sock);
-	
-/*
-	
-  	ssl = SSL_new (ctx);
-	RETURN_NULL(ssl);
-	
-  	SSL_set_fd(ssl, sock);
-	err = SSL_connect(ssl);
-	RETURN_SSL(err);
- 
-	 Informational output (optional) 
-  	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
- 
-  	server_cert = SSL_get_peer_certificate (ssl);    
-	if (server_cert != NULL)
-        {
-		printf ("Server certificate:\n");
 
-		str = X509_NAME_oneline(X509_get_subject_name(server_cert),0,0);
-		RETURN_NULL(str);
-		printf ("\t subject: %s\n", str);
-		free (str);
+	err = close(sock);
+	RETURN_ERR(err, "close");
  
-		str = X509_NAME_oneline(X509_get_issuer_name(server_cert),0,0);
-		RETURN_NULL(str);
-		printf ("\t issuer: %s\n", str);
-		free(str);
- 
-		X509_free (server_cert);
-
-	}
-        else
-                printf("The SSL server does not have certificate.\n");
- 
-
-  	err = SSL_write(ssl, hello, strlen(hello));  
- 
-	RETURN_SSL(err);
- 
-	 Receive data from the SSL server 
-  	err = SSL_read(ssl, buf, sizeof(buf)-1);                     
- 
-	RETURN_SSL(err);
-  	buf[err] = '\0';
-  	printf ("Received %d chars:'%s'\n", err, buf);
- 
- 
- 
-        err = SSL_shutdown(ssl);
-        RETURN_SSL(err);
-		
-*/		
- 
-        /* Terminate communication on a socket */
-        err = close(sock);
- 
-        RETURN_ERR(err, "close");
- 
-        /* Free the SSL structure */
-        SSL_free(ssl);
- 
-        /* Free the SSL_CTX structure */
-        SSL_CTX_free(ctx);
+	SSL_CTX_free(ctx);
 }
