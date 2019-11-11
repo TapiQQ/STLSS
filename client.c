@@ -25,83 +25,84 @@
  
 static int verify_callback(int ok, X509_STORE_CTX *ctx);
  
-#define RSA_CLIENT_CERT	"client.crt"
-#define RSA_CLIENT_KEY 	"client.key"
+#define RSA_CLIENT_CERT	"cert.crt"
+#define RSA_CLIENT_KEY 	"key.key"
  
 #define RSA_CLIENT_CA_CERT      "cert.crt"
 #define RSA_CLIENT_CA_PATH      "sys$common:[syshlp.examples.ssl]"
  
 #define ON      1
 #define OFF     0
- 
+
+void init_openssl()
+{ 
+	SSL_library_init();
+    SSL_load_error_strings();	
+    OpenSSL_add_ssl_algorithms();
+}
+
+
+SSL_CTX *create_context()
+{
+	const SSL_METHOD *method;
+    SSL_CTX *ctx;
+	
+	meth = SSLv23_client_method();
+	
+	ctx = SSL_CTX_new(meth); 
+	if (!ctx) {
+		perror("Unable to create SSL context");
+		ERR_print_errors_fp(stderr);
+		exit(EXIT_FAILURE);
+		}
+		
+	return ctx;
+}
+
+
+
+
 void main()
 {
   	int 	err;
-
-  	int 	verify_client = ON; /* To verify a client certificate, set ON */
+	SSL_CTX *ctx;
   	int 	sock;
-	  struct sockaddr_in server_addr;
-	  char	*str;
+	struct sockaddr_in server_addr;
+	char	*str;
   	char  	buf [4096];
   	char 	hello[80] = "asd";
 
-	SSL_CTX 	*ctx;
         SSL     	*ssl;
-	const SSL_METHOD *meth;
 	X509    	*server_cert;
         EVP_PKEY        *pkey;
 
 	short int 	s_port = 4433;
 	const char	*s_ipaddr = "10.0.1.1";
  
- 
- 
- 
-	/*----------------------------------------------------------*/
- 
-	/* Load encryption & hashing algorithms for the SSL program */
-	SSL_library_init();
- 
-	/* Load the error strings for SSL & CRYPTO APIs */
-	SSL_load_error_strings();
- 
-	/* Create an SSL_METHOD structure (choose an SSL/TLS protocol version) */
-  	meth = SSLv23_client_method();
- 
-	/* Create an SSL_CTX structure */
-  	ctx = SSL_CTX_new(meth);                        
- 
+	init_openssl();
+	
+	ctx = create_context();
 	RETURN_NULL(ctx);
 	
 	
-	
-	/*----------------------------------------------------------*/
-	if(verify_client == ON)
- 
-	{
- 
-		/* Load the client certificate into the SSL_CTX structure */
-		if (SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, 
- 
-     SSL_FILETYPE_PEM) <= 0) {
-                	ERR_print_errors_fp(stderr);
-                	exit(1);
-		}
- 
-		/* Load the private-key corresponding to the client certificate */
-        	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, 
-          SSL_FILETYPE_PEM) <= 0) {
-                	ERR_print_errors_fp(stderr);
-                	exit(1);
-        	}
- 
-		/* Check if the client certificate and private-key matches */
-        	if (!SSL_CTX_check_private_key(ctx)) {
-                	fprintf(stderr,"Private key does not match the certificate public key\n");
-                	exit(1);
-        	}
+
+	if (SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+
+	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, 
+  SSL_FILETYPE_PEM) <= 0) {
+			ERR_print_errors_fp(stderr);
+			exit(1);
 	}
  
+	if (!SSL_CTX_check_private_key(ctx)) {
+			fprintf(stderr,"Private key does not match the certificate public key\n");
+			exit(1);
+	}
+
+
 	/* Load the RSA CA certificate into the SSL_CTX structure */
 	/* This will allow this client to verify the server's     */
 	/* certificate.                                           */
