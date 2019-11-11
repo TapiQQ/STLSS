@@ -34,7 +34,7 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
-void *create_ssl_connection(SSL_CTX *ctx, int sock)
+void create_ssl_connection(SSL_CTX *ctx, int sock)
 {
 	int 	err;
 	SSL		*ssl;
