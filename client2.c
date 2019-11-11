@@ -28,7 +28,11 @@ int create_socket(int port)
     }
 	
 	s = connect(s, (struct sockaddr*) &addr, sizeof(addr));
-
+	if (s < 0) {
+	perror("Unable to connect socket");
+	exit(EXIT_FAILURE);
+    }
+	
     return s;
 }
 
@@ -116,7 +120,7 @@ int main(int argc, char **argv)
 	SSL_set_fd(ssl, sock);
 	
 	err = SSL_connect(ssl);
-	RETURN_SSL(err);
+	print("%d\n" err);
 	
 	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
 	
