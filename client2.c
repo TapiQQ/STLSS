@@ -84,10 +84,16 @@ void configure_context(SSL_CTX *ctx)
 
 int main(int argc, char **argv)
 {
+	
+	int sock;
+    SSL_CTX *ctx;
+    char buf [4096];
+	char 	hello[80];
+	
 	printf ("Message to be sent to the SSL server: ");
   	fgets (hello, 80, stdin);
 	
-	init_openssl()
+	init_openssl();
 	
 	ctx = create_context();
 	configure_context(ctx);
@@ -95,7 +101,7 @@ int main(int argc, char **argv)
     sock = create_socket(4433);
 	printf("Socket Created on port 4433\n");
 	
-	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
+	if (!SSL_CTX_load_verify_locations(ctx, "cert.crt", NULL)) {
        	        ERR_print_errors_fp(stderr);
        	        exit(1);
 	}
