@@ -77,9 +77,12 @@ void configure_context(SSL_CTX *ctx)
 
 int main(int argc, char **argv)
 {
+	char *str;
 	int err;
+	SSL *ssl;
 	int sock;
     SSL_CTX *ctx;
+	X509    *server_cert;
     char buf [4096];
 	char 	hello[80];
 	
@@ -111,7 +114,7 @@ int main(int argc, char **argv)
 	
 	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
 	
-	server_cert = SSL_get_peer_certificate (ssl);  
+	server_cert = SSL_get_peer_certificate(ssl);  
 	
 		if (server_cert != NULL)
         {
@@ -135,18 +138,14 @@ int main(int argc, char **argv)
 			
 			
 	err = SSL_write(ssl, hello, strlen(hello)); 
-	RETURN_SSL(err);
 	
 	err = SSL_read(ssl, buf, sizeof(buf)-1);   
-	RETURN_SSL(err);
   	buf[err] = '\0';
   	printf ("Received %d chars:'%s'\n", err, buf);
 	
 	err = SSL_shutdown(ssl);
-    RETURN_SSL(err);
 	
 	err = close(sock);
-	RETURN_ERR(err, "close");
 	
 	SSL_free(ssl);
 	SSL_CTX_free(ctx);
