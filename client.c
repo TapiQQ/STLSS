@@ -34,7 +34,58 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
+void create_ssl_connection(SSL_CTX *ctx, int sock)
+{
+	int 	err;
+	SSL		*ssl;
+	X509 	*server_cert;
+	char 	*str;
+	char  	buf [4096];
+  	char 	hello[80] = "Hello!";
+	
+	ssl = SSL_new (ctx);
+	RETURN_NULL(ssl);
+	
+	SSL_set_fd(ssl, sock);
+	err = SSL_connect(ssl);
+	RETURN_SSL(err);
+	
+	/* Informational output (optional) */
+  	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
+	
+	server_cert = SSL_get_peer_certificate (ssl);   
+		
+	if (server_cert != NULL)
+        {
+		printf ("Server certificate:\n");
 
+		str = X509_NAME_oneline(X509_get_subject_name(server_cert),0,0);
+		RETURN_NULL(str);
+		printf ("\t subject: %s\n", str);
+		free (str);
+ 
+		str = X509_NAME_oneline(X509_get_issuer_name(server_cert),0,0);
+		RETURN_NULL(str);
+		printf ("\t issuer: %s\n", str);
+		free(str);
+ 
+		X509_free (server_cert);
+
+	}
+        else
+            printf("The SSL server does not have certificate.\n");
+ 
+	err = SSL_write(ssl, hello, strlen(hello));  
+	RETURN_SSL(err);
+ 
+	err = SSL_read(ssl, buf, sizeof(buf)-1);                     
+	RETURN_SSL(err);
+  	buf[err] = '\0';
+  	printf ("Received %d chars:'%s'\n", err, buf);
+	
+	err = SSL_shutdown(ssl);
+    RETURN_SSL(err);
+}
 
 void init_openssl()
 { 
@@ -95,12 +146,9 @@ void main()
 	SSL_CTX *ctx;
   	int 	sock;
 	struct sockaddr_in server_addr;
-	char	*str;
-  	char  	buf [4096];
-  	char 	hello[80] = "asd";
+
 
         SSL     	*ssl;
-	X509    	*server_cert;
         EVP_PKEY        *pkey;
 
 
@@ -122,32 +170,26 @@ void main()
 	server_addr.sin_port        = htons(4433);
   	server_addr.sin_addr.s_addr = inet_addr("10.0.1.1");
  
-	/* Establish a TCP/IP connection to the SSL client */
- 
+
   	err = connect(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)); 
- 
 	RETURN_ERR(err, "connect");
-  	/* ----------------------------------------------- */
-  	/* An SSL structure is created */
- 
+
+	
+	create_ssl_connection(ctx, sock);
+	
+/*
+	
   	ssl = SSL_new (ctx);
- 
 	RETURN_NULL(ssl);
- 
-	/* Assign the socket into the SSL structure (SSL and socket without BIO) */
+	
   	SSL_set_fd(ssl, sock);
- 
-	/* Perform SSL Handshake on the SSL client */
 	err = SSL_connect(ssl);
- 
 	RETURN_SSL(err);
  
-	/* Informational output (optional) */
+	 Informational output (optional) 
   	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
  
-  	/* Get the server's certificate (optional) */
   	server_cert = SSL_get_peer_certificate (ssl);    
- 
 	if (server_cert != NULL)
         {
 		printf ("Server certificate:\n");
@@ -168,24 +210,24 @@ void main()
         else
                 printf("The SSL server does not have certificate.\n");
  
-	/*-------- DATA EXCHANGE - send message and receive reply. -------*/
-	/* Send data to the SSL server */
+
   	err = SSL_write(ssl, hello, strlen(hello));  
  
 	RETURN_SSL(err);
  
-	/* Receive data from the SSL server */
+	 Receive data from the SSL server 
   	err = SSL_read(ssl, buf, sizeof(buf)-1);                     
  
 	RETURN_SSL(err);
   	buf[err] = '\0';
   	printf ("Received %d chars:'%s'\n", err, buf);
  
-        /*--------------- SSL closure ---------------*/
-        /* Shutdown the client side of the SSL connection */
+ 
  
         err = SSL_shutdown(ssl);
         RETURN_SSL(err);
+		
+*/		
  
         /* Terminate communication on a socket */
         err = close(sock);
