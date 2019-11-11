@@ -110,7 +110,6 @@ int main(int argc, char **argv)
 	SSL_set_fd(ssl, sock);
 	
 	err = SSL_connect(ssl);
-	RETURN_SSL(err);
 	
 	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
 	
@@ -121,12 +120,10 @@ int main(int argc, char **argv)
 		printf ("Server certificate:\n");
 
 		str = X509_NAME_oneline(X509_get_subject_name(server_cert),0,0);
-		RETURN_NULL(str);
 		printf ("\t subject: %s\n", str);
 		free (str);
  
 		str = X509_NAME_oneline(X509_get_issuer_name(server_cert),0,0);
-		RETURN_NULL(str);
 		printf ("\t issuer: %s\n", str);
 		free(str);
  
