@@ -34,6 +34,60 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
+
+void init_openssl()
+{
+	SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+}
+
+
+SSL_CTX *create_context()
+{
+	const SSL_METHOD *method;
+	SSL_CTX *ctx;
+
+	method = SSLv23_client_method();
+
+	ctx = SSL_CTX_new(method); 
+	if (!ctx) {
+		perror("Unable to create SSL context");
+		ERR_print_errors_fp(stderr);
+		exit(EXIT_FAILURE);
+		}
+
+	return ctx;
+}
+
+void configure_context(SSL_CTX *ctx)
+{
+	if (SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+
+	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+
+	if (!SSL_CTX_check_private_key(ctx)) {
+		fprintf(stderr,"Private key does not match the certificate public key\n");
+		exit(1);
+	}
+
+	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
+       	ERR_print_errors_fp(stderr);
+		exit(1);
+	}
+
+	SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
+
+	SSL_CTX_set_verify_depth(ctx,1);
+}
+
+
 SSL *create_ssl_connection(int sock)
 {
 	int 	err;
@@ -94,58 +148,6 @@ SSL *create_ssl_connection(int sock)
 	RETURN_SSL(err);
 
 	return ssl;
-}
-
-void init_openssl()
-{
-	SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
-}
-
-
-SSL_CTX *create_context()
-{
-	const SSL_METHOD *method;
-	SSL_CTX *ctx;
-
-	method = SSLv23_client_method();
-
-	ctx = SSL_CTX_new(method); 
-	if (!ctx) {
-		perror("Unable to create SSL context");
-		ERR_print_errors_fp(stderr);
-		exit(EXIT_FAILURE);
-		}
-
-	return ctx;
-}
-
-void configure_context(SSL_CTX *ctx)
-{
-	if (SSL_CTX_use_certificate_file(ctx, RSA_CLIENT_CERT, SSL_FILETYPE_PEM) <= 0) {
-		ERR_print_errors_fp(stderr);
-		exit(1);
-	}
-
-	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, SSL_FILETYPE_PEM) <= 0) {
-		ERR_print_errors_fp(stderr);
-		exit(1);
-	}
-
-	if (!SSL_CTX_check_private_key(ctx)) {
-		fprintf(stderr,"Private key does not match the certificate public key\n");
-		exit(1);
-	}
-
-	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
-       	ERR_print_errors_fp(stderr);
-		exit(1);
-	}
-
-	SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
-
-	SSL_CTX_set_verify_depth(ctx,1);
 }
 
 
