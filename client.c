@@ -72,19 +72,6 @@ void configure_context(SSL_CTX *ctx)
 		exit(1);
 	}
 
-	if (!SSL_CTX_check_private_key(ctx)) {
-		fprintf(stderr,"Private key does not match the certificate public key\n");
-		exit(1);
-	}
-
-	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
-       	ERR_print_errors_fp(stderr);
-		exit(1);
-	}
-
-	SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
-
-	SSL_CTX_set_verify_depth(ctx,1);
 }
 
 
@@ -137,7 +124,8 @@ void create_ssl_connection(int sock)
 	err = SSL_set_fd(ssl, sock);
 
 	err = SSL_connect(ssl);
-	printf("SSL_connect succeeded: %d\n", err);
+	//err = SSL_get_error(ssl, err);
+	printf("SSL_connect error code: %d\n", err);
 
 
 	/* Informational output (optional) */
@@ -174,15 +162,15 @@ void create_ssl_connection(int sock)
   	printf ("Received %d chars:'%s'\n", err, buf);
 
 	err = SSL_shutdown(ssl);
-	printf("SSL_shutdown ret value: %d\n", err);
-
-
+	printf("SSL_shutdown #1: %d\n", err);
 	if(err == 0){
-		sleep(5);
+		//sleep(5);
 		err = SSL_shutdown(ssl);
-		printf("SSL_shutdown 2 ret value: %d\n", err);
-		err = SSL_get_error(ssl, err);
-		printf("SSL_shutdown error code: %d\n", err);
+		printf("SSL_shutdown #2: %d\n", err);
+		if(err < 0){
+			err = SSL_get_error(ssl, err);
+			printf("SSL_shutdown error code: %d\n", err);
+		}
 	}
 
 	SSL_CTX_free(ctx);
@@ -203,7 +191,9 @@ void main()
 
 	create_ssl_connection(sock);
 
-//	create_ssl_connection(sock);
+	sleep(3);
+
+	create_ssl_connection(sock);
 
 	err = close(sock);
 	RETURN_ERR(err, "close");
