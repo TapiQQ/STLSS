@@ -38,8 +38,8 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 void init_openssl()
 {
 	SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
+	SSL_load_error_strings();
+	OpenSSL_add_ssl_algorithms();
 }
 
 
@@ -88,7 +88,33 @@ void configure_context(SSL_CTX *ctx)
 }
 
 
-SSL *create_ssl_connection(int sock)
+
+int create_socket(int port)
+{
+	int sock;
+	struct sockaddr_in addr;
+
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if(sock < 0){
+		perror("Unable to create socket");
+		exit(EXIT_FAILURE);
+	}
+
+	memset(&addr, '\0', sizeof(addr));
+	addr.sin_family	= AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = inet_addr("10.0.1.1");
+
+	if(connect(sock, (struct sockaddr*) &addr, sizeof(addr)) < 0){
+		perror("Unable to connect");
+		exit(EXIT_FAILURE);
+	}
+
+	return sock;
+}
+
+
+void create_ssl_connection(int sock)
 {
 	int 	err;
 	SSL	*ssl;
@@ -103,13 +129,16 @@ SSL *create_ssl_connection(int sock)
 	ctx = create_context();
 	RETURN_NULL(ctx);
 	configure_context(ctx);
+	RETURN_NULL(ctx);
 
 	ssl = SSL_new (ctx);
 	RETURN_NULL(ssl);
 
-	SSL_set_fd(ssl, sock);
+	err = SSL_set_fd(ssl, sock);
+
 	err = SSL_connect(ssl);
-	RETURN_SSL(err);
+	printf("SSL_connect succeeded: %d\n", err);
+
 
 	/* Informational output (optional) */
   	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
@@ -145,46 +174,39 @@ SSL *create_ssl_connection(int sock)
   	printf ("Received %d chars:'%s'\n", err, buf);
 
 	err = SSL_shutdown(ssl);
-	RETURN_SSL(err);
+	printf("SSL_shutdown ret value: %d\n", err);
 
-	return ssl;
+
+	if(err == 0){
+		sleep(5);
+		err = SSL_shutdown(ssl);
+		printf("SSL_shutdown 2 ret value: %d\n", err);
+		err = SSL_get_error(ssl, err);
+		printf("SSL_shutdown error code: %d\n", err);
+	}
+
+	SSL_CTX_free(ctx);
+	SSL_free(ssl);
 }
 
 
 void main()
 {
-	SSL	*ssl;
   	int 	err;
-	SSL_CTX *ctx;
   	int 	sock;
-	struct sockaddr_in server_addr;
-
 
 
 	init_openssl();
 
-	//ctx = create_context();
-	//configure_context(ctx);
-
-  	sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
-	RETURN_ERR(sock, "socket");
-
-	memset (&server_addr, '\0', sizeof(server_addr));
-	server_addr.sin_family      = AF_INET;
-	server_addr.sin_port        = htons(4433);
-  	server_addr.sin_addr.s_addr = inet_addr("10.0.1.1");
+	sock = create_socket(4433);
 
 
-  	err = connect(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)); 
-	RETURN_ERR(err, "connect");
+	create_ssl_connection(sock);
 
+//	create_ssl_connection(sock);
 
-	ssl = create_ssl_connection(sock);
-
-
-	SSL_free(ssl);
 	err = close(sock);
 	RETURN_ERR(err, "close");
 
-	SSL_CTX_free(ctx);
+	printf("Success!\n");
 }
