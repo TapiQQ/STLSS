@@ -34,27 +34,34 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
-void create_ssl_connection(SSL_CTX *ctx, int sock)
+SSL *create_ssl_connection(int sock)
 {
 	int 	err;
-	SSL		*ssl;
+	SSL	*ssl;
+	SSL_SESSION	*sess;
+	SSL_CTX	*ctx;
 	X509 	*server_cert;
 	char 	*str;
 	char  	buf [4096];
   	char 	hello[80] = "Hello!";
-	
+
+
+	ctx = create_context();
+	RETURN_NULL(ctx);
+	configure_context(ctx);
+
 	ssl = SSL_new (ctx);
 	RETURN_NULL(ssl);
-	
+
 	SSL_set_fd(ssl, sock);
 	err = SSL_connect(ssl);
 	RETURN_SSL(err);
-	
+
 	/* Informational output (optional) */
   	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
-	
+
 	server_cert = SSL_get_peer_certificate (ssl);   
-		
+
 	if (server_cert != NULL)
         {
 		printf ("Server certificate:\n");
@@ -63,35 +70,36 @@ void create_ssl_connection(SSL_CTX *ctx, int sock)
 		RETURN_NULL(str);
 		printf ("\t subject: %s\n", str);
 		free (str);
- 
+
 		str = X509_NAME_oneline(X509_get_issuer_name(server_cert),0,0);
 		RETURN_NULL(str);
 		printf ("\t issuer: %s\n", str);
 		free(str);
- 
+
 		X509_free (server_cert);
 
 	}
         else
             printf("The SSL server does not have certificate.\n");
- 
+
 	err = SSL_write(ssl, hello, strlen(hello));  
 	RETURN_SSL(err);
- 
-	err = SSL_read(ssl, buf, sizeof(buf)-1);                     
+
+	err = SSL_read(ssl, buf, sizeof(buf)-1);
 	RETURN_SSL(err);
   	buf[err] = '\0';
   	printf ("Received %d chars:'%s'\n", err, buf);
-	
+
 	err = SSL_shutdown(ssl);
 	RETURN_SSL(err);
-	SSL_free(ssl);
+
+	return ssl;
 }
 
 void init_openssl()
-{ 
+{
 	SSL_library_init();
-    SSL_load_error_strings();	
+    SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
 }
 
@@ -99,17 +107,17 @@ void init_openssl()
 SSL_CTX *create_context()
 {
 	const SSL_METHOD *method;
-    SSL_CTX *ctx;
-	
+	SSL_CTX *ctx;
+
 	method = SSLv23_client_method();
-	
+
 	ctx = SSL_CTX_new(method); 
 	if (!ctx) {
 		perror("Unable to create SSL context");
 		ERR_print_errors_fp(stderr);
 		exit(EXIT_FAILURE);
 		}
-		
+
 	return ctx;
 }
 
@@ -119,30 +127,31 @@ void configure_context(SSL_CTX *ctx)
 		ERR_print_errors_fp(stderr);
 		exit(1);
 	}
-	
+
 	if (SSL_CTX_use_PrivateKey_file(ctx, RSA_CLIENT_KEY, SSL_FILETYPE_PEM) <= 0) {
 		ERR_print_errors_fp(stderr);
 		exit(1);
 	}
- 
+
 	if (!SSL_CTX_check_private_key(ctx)) {
 		fprintf(stderr,"Private key does not match the certificate public key\n");
 		exit(1);
 	}
-	
+
 	if (!SSL_CTX_load_verify_locations(ctx, RSA_CLIENT_CA_CERT, NULL)) {
        	ERR_print_errors_fp(stderr);
 		exit(1);
 	}
-	
+
 	SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
-	
+
 	SSL_CTX_set_verify_depth(ctx,1);
 }
 
 
 void main()
 {
+	SSL	*ssl;
   	int 	err;
 	SSL_CTX *ctx;
   	int 	sock;
@@ -150,31 +159,30 @@ void main()
 
 
 
- 
 	init_openssl();
-	
-	ctx = create_context();
-	RETURN_NULL(ctx);
 
-	configure_context(ctx);
-	
+	//ctx = create_context();
+	//configure_context(ctx);
+
   	sock = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP); 
 	RETURN_ERR(sock, "socket");
-	
+
 	memset (&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family      = AF_INET;
 	server_addr.sin_port        = htons(4433);
   	server_addr.sin_addr.s_addr = inet_addr("10.0.1.1");
- 
+
 
   	err = connect(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)); 
 	RETURN_ERR(err, "connect");
 
-	
-	create_ssl_connection(ctx, sock);
 
+	ssl = create_ssl_connection(sock);
+
+
+	SSL_free(ssl);
 	err = close(sock);
 	RETURN_ERR(err, "close");
- 
+
 	SSL_CTX_free(ctx);
 }
