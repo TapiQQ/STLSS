@@ -11,6 +11,7 @@ int create_socket(int port)
     int s;
     struct sockaddr_in addr;
 
+    memset(&addr, 0 , sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -26,7 +27,7 @@ int create_socket(int port)
 	exit(EXIT_FAILURE);
     }
 
-    if (listen(s, 1) < 0) {
+    if (listen(s, 5) < 0) {
 	perror("Unable to listen");
 	exit(EXIT_FAILURE);
     }
@@ -35,9 +36,10 @@ int create_socket(int port)
 }
 
 void init_openssl()
-{ 
-    SSL_load_error_strings();	
-    OpenSSL_add_ssl_algorithms();
+{
+	SSL_library_init();
+	SSL_load_error_strings();
+	OpenSSL_add_ssl_algorithms();
 }
 
 void cleanup_openssl()
@@ -82,6 +84,7 @@ void configure_context(SSL_CTX *ctx)
 
 int main(int argc, char **argv)
 {
+    int err;
     int sock;
     SSL_CTX *ctx;
     char buf [4096];
@@ -119,6 +122,18 @@ int main(int argc, char **argv)
 	    printf("Received message: '%s'\n", buf);
             SSL_write(ssl, reply, strlen(reply));
         }
+
+	err = SSL_shutdown(ssl);
+        printf("SSL_shutdown #1: %d\n", err);
+	if(err == 0){
+		//sleep(5);
+		err = SSL_shutdown(ssl);
+	        printf("SSL_shutdown #2: %d\n", err);
+		if(err <= 0){
+			err = SSL_get_error(ssl,err);
+			printf("SSL_shutdown error code: %d\n", err);
+		}
+	}
 
         SSL_free(ssl);
         close(client);
