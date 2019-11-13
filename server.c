@@ -6,6 +6,11 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#define ON	1
+#define OFF	0
+
+#define VERBOSE	0
+
 int create_socket(int port)
 {
     int s;
@@ -124,14 +129,14 @@ int main(int argc, char **argv)
         }
 
 	err = SSL_shutdown(ssl);
-        printf("SSL_shutdown #1: %d\n", err);
+        if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
 	if(err == 0){
 		//sleep(5);
 		err = SSL_shutdown(ssl);
-	        printf("SSL_shutdown #2: %d\n", err);
+	        if(VERBOSE == ON){	printf("SSL_shutdown #2: %d\n", err);	}
 		if(err <= 0){
 			err = SSL_get_error(ssl,err);
-			printf("SSL_shutdown error code: %d\n", err);
+			if(VERBOSE == ON){	printf("SSL_shutdown error code: %d\n", err);	}
 		}
 	}
 
