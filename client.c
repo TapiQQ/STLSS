@@ -34,6 +34,8 @@ static int verify_callback(int ok, X509_STORE_CTX *ctx);
 #define ON      1
 #define OFF     0
 
+#define VERBOSE	0
+
 
 void init_openssl()
 {
@@ -83,8 +85,12 @@ int create_socket(int port)
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(sock < 0){
+		if(VERBOSE == ON){	printf("socket() returned: %d\n", sock);	}
 		perror("Unable to create socket");
 		exit(EXIT_FAILURE);
+	}
+	else{
+		printf("Socket created in port: %d\n", port);
 	}
 
 	memset(&addr, '\0', sizeof(addr));
@@ -98,6 +104,18 @@ int create_socket(int port)
 	}
 
 	return sock;
+}
+
+int close_socket(int sock){
+	int err;
+
+	err = close(sock);
+        if(VERBOSE == ON){	printf("Socket close return value: %d\n", err);	}
+	if(err < 0){
+        	RETURN_ERR(err, "close");
+	}
+
+	return 0;
 }
 
 
@@ -125,7 +143,7 @@ void create_ssl_connection(int sock)
 
 	err = SSL_connect(ssl);
 	//err = SSL_get_error(ssl, err);
-	printf("SSL_connect error code: %d\n", err);
+	if(VERBOSE == ON){	printf("SSL_connect return value: %d\n", err);	}
 
 
 	/* Informational output (optional) */
@@ -162,14 +180,14 @@ void create_ssl_connection(int sock)
   	printf ("Received %d chars:'%s'\n", err, buf);
 
 	err = SSL_shutdown(ssl);
-	printf("SSL_shutdown #1: %d\n", err);
+	if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
 	if(err == 0){
 		//sleep(5);
 		err = SSL_shutdown(ssl);
-		printf("SSL_shutdown #2: %d\n", err);
+		if(VERBOSE == ON){	printf("SSL_shutdown #2: %d\n", err);	}
 		if(err < 0){
 			err = SSL_get_error(ssl, err);
-			printf("SSL_shutdown error code: %d\n", err);
+			if(VERBOSE == ON){	printf("SSL_shutdown error code: %d\n", err);	}
 		}
 	}
 
@@ -187,16 +205,15 @@ void main()
 	init_openssl();
 
 	sock = create_socket(4433);
-
-
 	create_ssl_connection(sock);
+	close_socket(sock);
 
-	sleep(3);
 
+
+	sock = create_socket(4433);
 	create_ssl_connection(sock);
+	close_socket(sock);
 
-	err = close(sock);
-	RETURN_ERR(err, "close");
 
-	printf("Success!\n");
+	if(VERBOSE == ON){	printf("Success!\n");	}
 }
