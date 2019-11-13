@@ -83,6 +83,7 @@ int create_socket(int port)
 	int sock;
 	struct sockaddr_in addr;
 
+	//Create socket
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(sock < 0){
 		if(VERBOSE == ON){	printf("socket() returned: %d\n", sock);	}
@@ -93,11 +94,13 @@ int create_socket(int port)
 		printf("Socket created in port: %d\n", port);
 	}
 
+	//Initialize address struct
 	memset(&addr, '\0', sizeof(addr));
 	addr.sin_family	= AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = inet_addr("10.0.1.1");
 
+	//connect socket
 	if(connect(sock, (struct sockaddr*) &addr, sizeof(addr)) < 0){
 		perror("Unable to connect");
 		exit(EXIT_FAILURE);
@@ -119,16 +122,14 @@ int close_socket(int sock){
 }
 
 
-void create_ssl_connection(int sock)
+SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 {
 	int 	err;
 	SSL	*ssl;
-	SSL_SESSION	*sess;
 	SSL_CTX	*ctx;
 	X509 	*server_cert;
 	char 	*str;
 	char  	buf [4096];
-  	char 	hello[80] = "Hello!";
 
 
 	ctx = create_context();
@@ -141,8 +142,17 @@ void create_ssl_connection(int sock)
 
 	err = SSL_set_fd(ssl, sock);
 
+
+	//Set session if not NULL
+	if(session != NULL){
+		printf("non-NULL session, setting session\n");
+		err = SSL_set_session(ssl, session);
+		printf("SSL_set_session return value: %d\n", err);
+	}
+
+
+	//Establish connection
 	err = SSL_connect(ssl);
-	//err = SSL_get_error(ssl, err);
 	if(VERBOSE == ON){	printf("SSL_connect return value: %d\n", err);	}
 
 
@@ -171,7 +181,9 @@ void create_ssl_connection(int sock)
         else
             printf("The SSL server does not have certificate.\n");
 
-	err = SSL_write(ssl, hello, strlen(hello));  
+
+	//Read and write operations
+	err = SSL_write(ssl, msg, strlen(msg)); 
 	RETURN_SSL(err);
 
 	err = SSL_read(ssl, buf, sizeof(buf)-1);
@@ -179,6 +191,14 @@ void create_ssl_connection(int sock)
   	buf[err] = '\0';
   	printf ("Received %d chars:'%s'\n", err, buf);
 
+
+	//SAVE SESSION
+	session = SSL_get1_session(ssl);
+	RETURN_NULL(session);
+	printf("Session saved successfully\n");
+
+
+	//Communicate connection shutdown
 	err = SSL_shutdown(ssl);
 	if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
 	if(err == 0){
@@ -193,6 +213,10 @@ void create_ssl_connection(int sock)
 
 	SSL_CTX_free(ctx);
 	SSL_free(ssl);
+
+
+	//returns pointer to the ssl session
+	return session;
 }
 
 
@@ -200,18 +224,20 @@ void main()
 {
   	int 	err;
   	int 	sock;
+	SSL_SESSION	*session = NULL;
+	char hello1[80] = "kek";
+	char hello2[80] = "bur";
 
 
 	init_openssl();
 
 	sock = create_socket(4433);
-	create_ssl_connection(sock);
+	session = create_ssl_connection(sock, session, hello1);
 	close_socket(sock);
 
 
-
 	sock = create_socket(4433);
-	create_ssl_connection(sock);
+	session = create_ssl_connection(sock, session, hello2);
 	close_socket(sock);
 
 
