@@ -78,7 +78,7 @@ void configure_context(SSL_CTX *ctx)
 
 
 
-int create_socket(int port)
+int create_socket(int port, char* ip_addr)
 {
 	int sock;
 	struct sockaddr_in addr;
@@ -98,7 +98,7 @@ int create_socket(int port)
 	memset(&addr, '\0', sizeof(addr));
 	addr.sin_family	= AF_INET;
 	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = inet_addr("10.0.1.1");
+	addr.sin_addr.s_addr = inet_addr(ip_addr);
 
 	//connect socket
 	if(connect(sock, (struct sockaddr*) &addr, sizeof(addr)) < 0){
@@ -155,6 +155,8 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 	err = SSL_connect(ssl);
 	if(VERBOSE == ON){	printf("SSL_connect return value: %d\n", err);	}
 
+
+	printf("Session Reuse: %d\n", SSL_session_reused(ssl));
 
 	/* Informational output (optional) */
   	printf ("SSL connection using %s\n", SSL_get_cipher (ssl));
@@ -231,12 +233,13 @@ void main()
 
 	init_openssl();
 
-	sock = create_socket(4433);
+	sock = create_socket(4433, "10.0.1.1");
 	session = create_ssl_connection(sock, session, hello1);
 	close_socket(sock);
 
+	//printf("%d", session->version);
 
-	sock = create_socket(4433);
+	sock = create_socket(4433, "10.0.1.1");
 	session = create_ssl_connection(sock, session, hello2);
 	close_socket(sock);
 
