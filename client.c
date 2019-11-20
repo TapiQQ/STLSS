@@ -11,10 +11,9 @@
 #include <openssl/err.h>
 
 
-
-
-
 #define VERBOSE	0
+
+static int ssl_session_ctx_id = 69;
 
 
 void init_openssl()
@@ -44,6 +43,8 @@ SSL_CTX *create_context()
 
 void configure_context(SSL_CTX *ctx)
 {
+
+
 	if (SSL_CTX_use_certificate_file(ctx, "cert.crt", SSL_FILETYPE_PEM) <= 0) {
 		ERR_print_errors_fp(stderr);
 		exit(1);
@@ -193,12 +194,6 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
   	printf ("Received %d chars:'%s'\n", err, buf);
 
 
-	//SAVE SESSION
-	session = SSL_get1_session(ssl);
-	if(ctx == NULL){exit(1);}
-	if(VERBOSE == 1){	printf("Session saved successfully\n");	}
-
-
 	//Communicate connection shutdown
 	err = SSL_shutdown(ssl);
 	if(VERBOSE == 1){	printf("SSL_shutdown #1: %d\n", err);	}
@@ -211,6 +206,22 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 			if(VERBOSE == 1){	printf("SSL_shutdown error code: %d\n", err);	}
 		}
 	}
+
+
+
+        //SAVE SESSION
+        if(session == NULL){
+		session = SSL_get1_session(ssl);
+	}
+
+        if(ctx == NULL){exit(1);}
+        if(VERBOSE == 1){       printf("Session saved successfully\n"); }
+
+
+        //Print SSL Session
+        SSL_SESSION_print_fp(stdout, session);
+
+
 
 	SSL_CTX_free(ctx);
 	SSL_free(ssl);
