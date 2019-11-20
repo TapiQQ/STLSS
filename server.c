@@ -11,6 +11,8 @@
 
 #define VERBOSE	0
 
+static int ssl_session_ctx_id = 1;
+
 int create_socket(int port)
 {
     int s;
@@ -71,9 +73,13 @@ SSL_CTX *create_context()
 
 void configure_context(SSL_CTX *ctx)
 {
-    SSL_CTX_set_ecdh_auto(ctx, 1);
+    //SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_BOTH);
+    //SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_BOTH);
+
+    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
+
+    SSL_CTX_set_session_id_context(ctx, (void *)&ssl_session_ctx_id, sizeof(ssl_session_ctx_id));
 
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(ctx, "cert.crt", SSL_FILETYPE_PEM) <= 0) {
@@ -92,7 +98,11 @@ int main(int argc, char **argv)
     int err;
     int sock;
     SSL_CTX *ctx;
+    SSL_SESSION	*session = NULL;
     char buf [4096];
+    unsigned char *pp = NULL;
+    int asn1_size;
+    FILE *session_file;
 
     init_openssl();
     ctx = create_context();
@@ -119,6 +129,7 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
+
         if (SSL_accept(ssl) <= 0) {
             ERR_print_errors_fp(stderr);
         }
@@ -127,6 +138,24 @@ int main(int argc, char **argv)
 	    printf("Received message: '%s'\n", buf);
             SSL_write(ssl, reply, strlen(reply));
         }
+
+	//SAVE SESSION
+        session = SSL_get1_session(ssl);
+	if(session != NULL){
+        	printf("Session saved successfully\n");
+	}
+	else{
+		printf("Session save failed\n");
+	}
+
+	//SSL_SESSION to ASN1
+	asn1_size = i2d_SSL_SESSION(session, NULL);
+	pp = malloc(asn1_size);
+	asn1_size = i2d_SSL_SESSION(session, &pp);
+	//ASN1 to FILE
+	session_file = fopen("session.bin", "wb");
+	fwrite(pp, sizeof(pp), 1, session_file);
+	fclose(session_file);
 
 	err = SSL_shutdown(ssl);
         if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
