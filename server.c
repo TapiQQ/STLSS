@@ -75,11 +75,11 @@ void configure_context(SSL_CTX *ctx)
 {
     //SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    //SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_BOTH);
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_SERVER);
 
     SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
-    SSL_CTX_set_session_id_context(ctx, (void *)&ssl_session_ctx_id, sizeof(ssl_session_ctx_id));
+    //SSL_CTX_set_session_id_context(ctx, (void *)&ssl_session_ctx_id, sizeof(ssl_session_ctx_id));
 
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(ctx, "cert.crt", SSL_FILETYPE_PEM) <= 0) {
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
         struct sockaddr_in addr;
         uint len = sizeof(addr);
         SSL *ssl;
-        const char reply[] = "test\n";
+        const char reply[] = "pong";
 
         int client = accept(sock, (struct sockaddr*)&addr, &len);
         if (client < 0) {
@@ -139,23 +139,15 @@ int main(int argc, char **argv)
             SSL_write(ssl, reply, strlen(reply));
         }
 
-	//SAVE SESSION
-        session = SSL_get1_session(ssl);
-	if(session != NULL){
-        	printf("Session saved successfully\n");
-	}
-	else{
-		printf("Session save failed\n");
-	}
 
-	//SSL_SESSION to ASN1
-	asn1_size = i2d_SSL_SESSION(session, NULL);
-	pp = malloc(asn1_size);
-	asn1_size = i2d_SSL_SESSION(session, &pp);
-	//ASN1 to FILE
-	session_file = fopen("session.bin", "wb");
-	fwrite(pp, sizeof(pp), 1, session_file);
-	fclose(session_file);
+        //Check session reuse
+        if(SSL_session_reused(ssl) == 1){
+                printf("Session Reused\n");
+        }
+        else{
+                printf("New Session\n");
+        }
+
 
 	err = SSL_shutdown(ssl);
         if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
