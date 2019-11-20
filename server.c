@@ -11,7 +11,27 @@
 
 #define VERBOSE	0
 
-static int ssl_session_ctx_id = 1;
+static int ssl_session_ctx_id = 69;
+
+
+//new session callback function
+static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
+{
+    printf("!!! NEW SESSION CB !!!\n");
+    return 0;
+}
+
+static void remove_session_cb(struct ssl_ctx_st *ctx, SSL_SESSION *sess)
+{
+    printf("!!! REMOVE SESSION CB !!!\n");
+    return;
+}
+
+static SSL_SESSION *get_session_cb(struct ssl_st *ssl, const unsigned char *data, int len, int *copy)
+{
+    printf("!!! GET SESSION CB !!!\n");
+    return NULL;
+}
 
 int create_socket(int port)
 {
@@ -77,9 +97,9 @@ void configure_context(SSL_CTX *ctx)
 
     SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_SERVER);
 
-    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
+    //SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
-    //SSL_CTX_set_session_id_context(ctx, (void *)&ssl_session_ctx_id, sizeof(ssl_session_ctx_id));
+    SSL_CTX_set_session_id_context(ctx, (void *)&ssl_session_ctx_id, sizeof(ssl_session_ctx_id));
 
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(ctx, "cert.crt", SSL_FILETYPE_PEM) <= 0) {
@@ -91,6 +111,12 @@ void configure_context(SSL_CTX *ctx)
         ERR_print_errors_fp(stderr);
 	exit(EXIT_FAILURE);
     }
+
+
+    SSL_CTX_sess_set_new_cb(ctx, new_session_cb);
+    SSL_CTX_sess_set_remove_cb(ctx, remove_session_cb);
+    SSL_CTX_sess_set_get_cb(ctx, get_session_cb);
+
 }
 
 int main(int argc, char **argv)
@@ -148,7 +174,6 @@ int main(int argc, char **argv)
                 printf("New Session\n");
         }
 
-
 	err = SSL_shutdown(ssl);
         if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
 	if(err == 0){
@@ -161,9 +186,35 @@ int main(int argc, char **argv)
 		}
 	}
 
+
+
+        //Print SSL Session
+        SSL_SESSION_print_fp(stdout, SSL_get1_session(ssl));
+
+
+
+	//Session Statistics
+	printf("Number of sessions in the internal session cache: %ld\n", SSL_CTX_sess_number(ctx));
+        printf("Number of started handhakes in client mode: %ld\n", SSL_CTX_sess_connect(ctx));
+        printf("Number of established sessions in client mode: %ld\n", SSL_CTX_sess_connect_good(ctx));
+        printf("Number of started renegotiations in client mode: %ld\n", SSL_CTX_sess_connect_renegotiate(ctx));
+        printf("Number of started SSL/TLS handshakes in server mode:%ld\n", SSL_CTX_sess_accept(ctx));
+        printf("Number of successfully established SSL/TLS sessions in server mode: %ld\n", SSL_CTX_sess_accept_good(ctx));
+        printf("Number of started renegotiations in server mode: %ld\n", SSL_CTX_sess_accept_renegotiate(ctx));
+        printf("Number of successfully reused sessions: %ld\n", SSL_CTX_sess_hits(ctx));
+        printf("Number of successfully retrieved sessions from the external session cache in server mode: %ld\n", SSL_CTX_sess_cb_hits(ctx));
+        printf("Number of sessions proposed by clients that were not found in the internal session cache in server mode: %ld\n", SSL_CTX_sess_misses(ctx));
+        printf("Number of sessions proposed by clients and either found in the internal or external session cache in server mode, but that were invalid due to timeout:%ld\n", SSL_CTX_sess_timeouts(ctx));
+        printf("Number of sessions that were removed because the maximum session cache size was exceeded: %ld\n", SSL_CTX_sess_cache_full(ctx));
+
+
+
         SSL_free(ssl);
         close(client);
     }
+
+
+
 
     close(sock);
     SSL_CTX_free(ctx);
