@@ -237,15 +237,20 @@ void main()
   	int 	err;
   	int 	sock;
 	SSL_SESSION	*session = NULL;
-	char hello1[80] = "ping";
-
+	char hello[80] = "ping";
+	char addr[10];
 
 	init_openssl();
 
+  	printf ("IP address of the SSL server: ");
+  	fgets (addr, 10, stdin);
 
-	for(int i = 0; i<5; i++){
-		sock = create_socket(4433, "10.0.1.1");
-		session = create_ssl_connection(sock, session, hello1);
+
+	while(1){
+	  	printf ("Message to be sent to the SSL server: ");
+  		fgets (hello, 80, stdin);
+		sock = create_socket(4433, addr);
+		session = create_ssl_connection(sock, session, hello);
 		close_socket(sock);
 	}
 
