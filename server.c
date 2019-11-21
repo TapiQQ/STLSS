@@ -145,12 +145,14 @@ int main(int argc, char **argv)
         SSL *ssl;
         const char reply[] = "pong";
 
+
         int client = accept(sock, (struct sockaddr*)&addr, &len);
         if (client < 0) {
             perror("Unable to accept");
             exit(EXIT_FAILURE);
         }
 	printf("Connection from %x, port %x\n", addr.sin_addr.s_addr, addr.sin_port);
+
 
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
@@ -164,6 +166,7 @@ int main(int argc, char **argv)
 	    printf("Received message: '%s'\n", buf);
             SSL_write(ssl, reply, strlen(reply));
         }
+
 
 
         //Check session reuse
