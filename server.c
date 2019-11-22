@@ -6,6 +6,8 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#include "cache.h"
+
 #define ON	1
 #define OFF	0
 
@@ -124,7 +126,7 @@ int main(int argc, char **argv)
     int err;
     int sock;
     SSL_CTX *ctx;
-    SSL_SESSION	*session = NULL;
+    SSL_SESSION	*session = malloc(sizeof(session));
     char buf [4096];
     unsigned char *pp = NULL;
     int asn1_size;
@@ -210,7 +212,9 @@ int main(int argc, char **argv)
         printf("Number of sessions proposed by clients and either found in the internal or external session cache in server mode, but that were invalid due to timeout:%ld\n", SSL_CTX_sess_timeouts(ctx));
         printf("Number of sessions that were removed because the maximum session cache size was exceeded: %ld\n", SSL_CTX_sess_cache_full(ctx));
 
-
+	session = SSL_get1_session(ssl);
+	ssl_scache_store(session, 10);
+	session = ssl_scache_retrieve("asd", 1024);
 
         SSL_free(ssl);
         close(client);
