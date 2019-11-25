@@ -212,9 +212,18 @@ int main(int argc, char **argv)
         printf("Number of sessions proposed by clients and either found in the internal or external session cache in server mode, but that were invalid due to timeout:%ld\n", SSL_CTX_sess_timeouts(ctx));
         printf("Number of sessions that were removed because the maximum session cache size was exceeded: %ld\n", SSL_CTX_sess_cache_full(ctx));
 
+
+	const unsigned char* sessid = malloc(sizeof(unsigned char*));
+        unsigned int *max_session_id_length;
+        unsigned int var = 32;
+        max_session_id_length = &var;
+
 	session = SSL_get1_session(ssl);
 	ssl_scache_store(session, 10);
-	session = ssl_scache_retrieve("asd", 1024);
+	sessid = SSL_SESSION_get_id(session, max_session_id_length);
+	session = ssl_scache_retrieve((unsigned char *)sessid, 32);
+
+	SSL_SESSION_print_fp(stdout, session);
 
         SSL_free(ssl);
         close(client);

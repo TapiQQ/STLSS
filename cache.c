@@ -12,7 +12,7 @@
 struct ssl_scinfo_t {
 	const unsigned char  *ucaKey;
    	unsigned int  nKey;
-   	const unsigned char  *ucaData;
+   	unsigned char  *ucaData;
    	int   nData;
    	int   tExpiresAt;
 };
@@ -66,7 +66,7 @@ SSL_SESSION *ssl_scache_retrieve(unsigned char *id, int idlen){
 
 	//no expiration implementation yet
 
-	sess = d2i_SSL_SESSION(NULL, &SCI.ucaData, SCI.nData);
+	sess = d2i_SSL_SESSION(NULL, (const unsigned char **)&SCI.ucaData, SCI.nData);
 	return sess;
 }
 
@@ -76,6 +76,7 @@ int ssl_scache_dbm_store(struct ssl_scinfo_t *SCI){
 	datum dbmkey;
 	datum dbmval;
 	int err;
+	const unsigned char* id = malloc(sizeof(const unsigned char *));
 
 	//Don't try to store too much
 	if ((SCI->nKey + SCI->nData) >= 950 /* at least less than approx. 1KB */)
@@ -96,7 +97,9 @@ int ssl_scache_dbm_store(struct ssl_scinfo_t *SCI){
 	//Store to DBM file
 	gdbm = gdbm_open("test.gdbm", 0, GDBM_WRITER, 777, NULL);
 	err = gdbm_store(gdbm, dbmkey, dbmval, GDBM_INSERT);
-	if(err == 0){	printf("gdbm_store succeeded!\n");	}
+	if(err == 0){
+		printf("gdbm_store succeeded!\n");
+	}
 	gdbm_close(gdbm);
 
 
@@ -106,5 +109,41 @@ int ssl_scache_dbm_store(struct ssl_scinfo_t *SCI){
 }
 
 void ssl_scache_dbm_retrieve(struct ssl_scinfo_t *SCI){
-	printf("This is called by dbm_retrieve function!\n");
+	GDBM_FILE gdbm;
+	datum dbmkey;
+	datum dbmval;
+
+	//Initialize result
+	SCI->ucaData = NULL;
+	SCI->nData = 0;
+	SCI->tExpiresAt = 0;
+
+	//Create DBM key and values
+	dbmkey.dptr = (char *)(SCI->ucaKey);
+	dbmkey.dsize = SCI->nKey;
+
+	//fetch it from the DBM file
+	gdbm = gdbm_open("test.gdbm", 0, GDBM_READER, 777, NULL);
+	dbmval = gdbm_fetch(gdbm, dbmkey);
+	gdbm_close(gdbm);
+
+	//Return if not found
+	if(dbmval.dptr == NULL || dbmval.dsize <= sizeof(time_t)){
+		printf("Retrieved session was NULL\n");
+		return;
+	}
+
+	//Copy over the information to the SCI
+	SCI->nData = dbmval.dsize-sizeof(time_t);
+	SCI->ucaData = (unsigned char *)malloc(SCI->nData);
+	if (SCI->ucaData == NULL){
+        	SCI->nData = 0;
+		return;
+    	}
+	memcpy(SCI->ucaData, (char *)dbmval.dptr+sizeof(time_t), SCI->nData);
+	memcpy(&SCI->tExpiresAt, dbmval.dptr, sizeof(time_t));
+
+	printf("Session cache retrieved!\n");
+
+	return;
 }
