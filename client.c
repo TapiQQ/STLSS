@@ -121,7 +121,6 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 	configure_context(ctx);
 	if(ctx == NULL){exit(1);}
 
-
 	ssl = SSL_new (ctx);
 	if(ctx == NULL){exit(1);}
 
@@ -194,6 +193,13 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
   	printf ("Received %d chars:'%s'\n", err, buf);
 
 
+
+        //SAVE SESSION
+        if(session == NULL){
+                session = SSL_get1_session(ssl);
+        }
+
+
 	//Communicate connection shutdown
 	err = SSL_shutdown(ssl);
 	if(VERBOSE == 1){	printf("SSL_shutdown #1: %d\n", err);	}
@@ -208,11 +214,6 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 	}
 
 
-
-        //SAVE SESSION
-        if(session == NULL){
-		session = SSL_get1_session(ssl);
-	}
 
         if(ctx == NULL){exit(1);}
         if(VERBOSE == 1){       printf("Session saved successfully\n"); }
@@ -237,23 +238,32 @@ void main()
   	int 	err;
   	int 	sock;
 	SSL_SESSION	*session = NULL;
+	SSL_SESSION	**sess;
 	char hello[80] = "ping";
 	char addr[10];
+	FILE	*sessionfile;
 
 	init_openssl();
 
-  	printf ("IP address of the SSL server: ");
-  	fgets (addr, 10, stdin);
+
+        sessionfile = fopen("sessionfile.pem", "rb");
+        session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
+        fclose(sessionfile);
+
+	SSL_SESSION_print_fp(stdout, session);
 
 
-	while(1){
+
+//	while(1){
+	        printf ("IP address of the SSL server: ");
+        	fgets (addr, 10, stdin);
 	  	printf ("Message to be sent to the SSL server: ");
   		fgets (hello, 80, stdin);
 		sock = create_socket(4433, addr);
 		session = create_ssl_connection(sock, session, hello);
 		close_socket(sock);
-	}
 
+//	}
 
 	if(VERBOSE == 1){	printf("Success!\n");	}
 }
