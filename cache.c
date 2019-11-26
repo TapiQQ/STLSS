@@ -89,16 +89,17 @@ int ssl_scache_dbm_store(struct ssl_scinfo_t *SCI){
 	//Create DBM value
 	dbmval.dsize = sizeof(time_t) + SCI->nData;
 	dbmval.dptr  = (char *)malloc(dbmval.dsize);
-	if (dbmval.dptr == NULL)
+	if (dbmval.dptr == NULL){
         	return 0;
+	}
 	memcpy((char *)dbmval.dptr, &SCI->tExpiresAt, sizeof(time_t));
 	memcpy((char *)dbmval.dptr+sizeof(time_t), SCI->ucaData, SCI->nData);
 
 	//Store to DBM file
 	gdbm = gdbm_open("test.gdbm", 0, GDBM_WRITER, 777, NULL);
 	err = gdbm_store(gdbm, dbmkey, dbmval, GDBM_INSERT);
-	if(err == 0){
-		printf("gdbm_store succeeded!\n");
+	if(err != 0){
+		return 0;
 	}
 	gdbm_close(gdbm);
 

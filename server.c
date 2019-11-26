@@ -19,8 +19,17 @@ static int ssl_session_ctx_id = 69;
 //new session callback function
 static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
 {
-    printf("!!! NEW SESSION CB !!!\n");
-    return 0;
+	int r;
+
+	printf("!!! NEW SESSION CB !!!\n");
+
+	r = ssl_scache_store(session,10);
+
+	if(r == 1){
+		printf("New session successfully stored\n");
+	}
+
+	return 0;
 }
 
 static void remove_session_cb(struct ssl_ctx_st *ctx, SSL_SESSION *sess)
@@ -130,7 +139,7 @@ int main(int argc, char **argv)
     char buf [4096];
     unsigned char *pp = NULL;
     int asn1_size;
-    FILE *session_file;
+    FILE *sessionfile;
 
     init_openssl();
     ctx = create_context();
@@ -179,6 +188,7 @@ int main(int argc, char **argv)
                 printf("New Session\n");
         }
 
+
 	err = SSL_shutdown(ssl);
         if(VERBOSE == ON){	printf("SSL_shutdown #1: %d\n", err);	}
 	if(err == 0){
@@ -219,11 +229,11 @@ int main(int argc, char **argv)
         max_session_id_length = &var;
 
 	session = SSL_get1_session(ssl);
-	ssl_scache_store(session, 10);
 	sessid = SSL_SESSION_get_id(session, max_session_id_length);
 	session = ssl_scache_retrieve((unsigned char *)sessid, 32);
 
 	SSL_SESSION_print_fp(stdout, session);
+
 
         SSL_free(ssl);
         close(client);
