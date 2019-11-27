@@ -23,11 +23,14 @@ static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
 
 	printf("!!! NEW SESSION CB !!!\n");
 
+
+	/* store the session
 	r = ssl_scache_store(session,10);
 
 	if(r == 1){
 		printf("New session successfully stored\n");
 	}
+	*/
 
 	return 0;
 }
@@ -106,7 +109,7 @@ void configure_context(SSL_CTX *ctx)
 {
     //SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_SERVER);
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
 
     //SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
@@ -135,16 +138,28 @@ int main(int argc, char **argv)
     int err;
     int sock;
     SSL_CTX *ctx;
-    SSL_SESSION	*session = malloc(sizeof(session));
+    SSL_SESSION	*session = NULL;
+    SSL_SESSION **sess;
     char buf [4096];
     unsigned char *pp = NULL;
     int asn1_size;
     FILE *sessionfile;
+    time_t now = time(0);
 
     init_openssl();
     ctx = create_context();
 
     configure_context(ctx);
+
+
+    //LOAD SESSION FROM PEM FILE
+    sessionfile = fopen("sessionfile.pem", "rb");
+    session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
+    fclose(sessionfile);
+    SSL_SESSION_set_time(session, now);
+    SSL_SESSION_print_fp(stdout,session);
+
+    //SSL_CTX_add_session(ctx,session);
 
     sock = create_socket(4433);
     printf("Server started on port 4433\n");
@@ -168,6 +183,8 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
+	//Force set session, seems to be the easiest way to force instant resumption
+	SSL_set_session(ssl, session);
 
         if (SSL_accept(ssl) <= 0) {
             ERR_print_errors_fp(stderr);
@@ -202,10 +219,13 @@ int main(int argc, char **argv)
 	}
 
 
-
-        //Print SSL Session
-        SSL_SESSION_print_fp(stdout, SSL_get1_session(ssl));
-
+	/* SAVE SESSION TO PEM FILE
+        session = SSL_get1_session(ssl);
+	sessionfile = fopen("sessionfile.pem", "wb");
+	PEM_write_SSL_SESSION(sessionfile,session);
+	fclose(sessionfile);
+	SSL_SESSION_print_fp(stdout,session);
+	*/
 
 
 	//Session Statistics
@@ -223,16 +243,19 @@ int main(int argc, char **argv)
         printf("Number of sessions that were removed because the maximum session cache size was exceeded: %ld\n", SSL_CTX_sess_cache_full(ctx));
 
 
+	/* retrieve the session with ssl_scache_retrieve
 	const unsigned char* sessid = malloc(sizeof(unsigned char*));
         unsigned int *max_session_id_length;
         unsigned int var = 32;
         max_session_id_length = &var;
-
 	session = SSL_get1_session(ssl);
 	sessid = SSL_SESSION_get_id(session, max_session_id_length);
 	session = ssl_scache_retrieve((unsigned char *)sessid, 32);
+	*/
 
-	SSL_SESSION_print_fp(stdout, session);
+
+
+
 
 
         SSL_free(ssl);
