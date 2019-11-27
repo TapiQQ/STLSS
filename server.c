@@ -133,6 +133,22 @@ void configure_context(SSL_CTX *ctx)
 
 }
 
+void print_session_statistics(SSL_CTX *ctx)
+{
+        printf("Number of sessions in the internal session cache: %ld\n", SSL_CTX_sess_number(ctx));
+        printf("Number of started handhakes in client mode: %ld\n", SSL_CTX_sess_connect(ctx));
+        printf("Number of established sessions in client mode: %ld\n", SSL_CTX_sess_connect_good(ctx));
+        printf("Number of started renegotiations in client mode: %ld\n", SSL_CTX_sess_connect_renegotiate(ctx));
+        printf("Number of started SSL/TLS handshakes in server mode:%ld\n", SSL_CTX_sess_accept(ctx));
+        printf("Number of successfully established SSL/TLS sessions in server mode: %ld\n", SSL_CTX_sess_accept_good(ctx));
+        printf("Number of started renegotiations in server mode: %ld\n", SSL_CTX_sess_accept_renegotiate(ctx));
+        printf("Number of successfully reused sessions: %ld\n", SSL_CTX_sess_hits(ctx));
+        printf("Number of successfully retrieved sessions from the external session cache in server mode: %ld\n", SSL_CTX_sess_cb_hits(ctx));
+        printf("Number of sessions proposed by clients that were not found in the internal session cache in server mode: %ld\n", SSL_CTX_sess_misses(ctx));
+        printf("Number of sessions proposed by clients and either found in the internal or external session cache in server mode, but that were invalid due to timeout:%ld\n", SSL_CTX_sess_timeouts(ctx));
+        printf("Number of sessions that were removed because the maximum session cache size was exceeded: %ld\n", SSL_CTX_sess_cache_full(ctx));
+}
+
 int main(int argc, char **argv)
 {
     int err;
@@ -228,20 +244,7 @@ int main(int argc, char **argv)
 	*/
 
 
-	//Session Statistics
-	printf("Number of sessions in the internal session cache: %ld\n", SSL_CTX_sess_number(ctx));
-        printf("Number of started handhakes in client mode: %ld\n", SSL_CTX_sess_connect(ctx));
-        printf("Number of established sessions in client mode: %ld\n", SSL_CTX_sess_connect_good(ctx));
-        printf("Number of started renegotiations in client mode: %ld\n", SSL_CTX_sess_connect_renegotiate(ctx));
-        printf("Number of started SSL/TLS handshakes in server mode:%ld\n", SSL_CTX_sess_accept(ctx));
-        printf("Number of successfully established SSL/TLS sessions in server mode: %ld\n", SSL_CTX_sess_accept_good(ctx));
-        printf("Number of started renegotiations in server mode: %ld\n", SSL_CTX_sess_accept_renegotiate(ctx));
-        printf("Number of successfully reused sessions: %ld\n", SSL_CTX_sess_hits(ctx));
-        printf("Number of successfully retrieved sessions from the external session cache in server mode: %ld\n", SSL_CTX_sess_cb_hits(ctx));
-        printf("Number of sessions proposed by clients that were not found in the internal session cache in server mode: %ld\n", SSL_CTX_sess_misses(ctx));
-        printf("Number of sessions proposed by clients and either found in the internal or external session cache in server mode, but that were invalid due to timeout:%ld\n", SSL_CTX_sess_timeouts(ctx));
-        printf("Number of sessions that were removed because the maximum session cache size was exceeded: %ld\n", SSL_CTX_sess_cache_full(ctx));
-
+	print_session_statistics(ctx);
 
 	/* retrieve the session with ssl_scache_retrieve
 	const unsigned char* sessid = malloc(sizeof(unsigned char*));
