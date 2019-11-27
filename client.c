@@ -242,14 +242,16 @@ void main()
 	char hello[80] = "ping";
 	char addr[10];
 	FILE	*sessionfile;
+	time_t now = time(0);
 
 	init_openssl();
 
 
+	// SAVE SESSION TO PEM FILE
         sessionfile = fopen("sessionfile.pem", "rb");
         session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
         fclose(sessionfile);
-
+	SSL_SESSION_set_time(session, now);
 	SSL_SESSION_print_fp(stdout, session);
 
 
@@ -264,6 +266,13 @@ void main()
 		close_socket(sock);
 
 //	}
+
+	/*
+	sessionfile = fopen("sessionfile.pem", "wb");
+	PEM_write_SSL_SESSION(sessionfile, session);
+	fclose(sessionfile);
+	SSL_SESSION_print_fp(stdout,session);
+	*/
 
 	if(VERBOSE == 1){	printf("Success!\n");	}
 }
