@@ -11,7 +11,7 @@
 #include <openssl/err.h>
 
 
-#define VERBOSE	0
+#define VERBOSE	1
 
 static int ssl_session_ctx_id = 69;
 
@@ -247,7 +247,7 @@ void main()
 	init_openssl();
 
 
-	// SAVE SESSION TO PEM FILE
+	// LOAD SESSION FROM PEM FILE
         sessionfile = fopen("sessionfile.pem", "rb");
         session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
         fclose(sessionfile);
@@ -256,7 +256,7 @@ void main()
 
 
 
-//	while(1){
+	while(1){
 	        printf ("IP address of the SSL server: ");
         	fgets (addr, 10, stdin);
 	  	printf ("Message to be sent to the SSL server: ");
@@ -265,9 +265,9 @@ void main()
 		session = create_ssl_connection(sock, session, hello);
 		close_socket(sock);
 
-//	}
+	}
 
-	/*
+	/* SAVE SESSION TO PEM FILE
 	sessionfile = fopen("sessionfile.pem", "wb");
 	PEM_write_SSL_SESSION(sessionfile, session);
 	fclose(sessionfile);
