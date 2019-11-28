@@ -11,7 +11,7 @@
 #define ON	1
 #define OFF	0
 
-#define VERBOSE	0
+#define VERBOSE	1
 
 static int ssl_session_ctx_id = 69;
 
@@ -109,7 +109,7 @@ void configure_context(SSL_CTX *ctx)
 {
     //SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_BOTH);
 
     //SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
@@ -168,14 +168,17 @@ int main(int argc, char **argv)
     configure_context(ctx);
 
 
-    //LOAD SESSION FROM PEM FILE
+    // LOAD SESSION FROM PEM FILE
     sessionfile = fopen("sessionfile.pem", "rb");
     session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
     fclose(sessionfile);
     SSL_SESSION_set_time(session, now);
     SSL_SESSION_print_fp(stdout,session);
 
+
     //SSL_CTX_add_session(ctx,session);
+
+    print_session_statistics(ctx);
 
     sock = create_socket(4433);
     printf("Server started on port 4433\n");
@@ -199,8 +202,10 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
+	//SSL_CTX_add_session(ctx, session);
+
 	//Force set session, seems to be the easiest way to force instant resumption
-	SSL_set_session(ssl, session);
+	//SSL_set_session(ssl, session);
 
         if (SSL_accept(ssl) <= 0) {
             ERR_print_errors_fp(stderr);
@@ -245,6 +250,8 @@ int main(int argc, char **argv)
 
 
 	print_session_statistics(ctx);
+
+	SSL_SESSION_print_fp(stdout, SSL_get_session(ssl));
 
 	/* retrieve the session with ssl_scache_retrieve
 	const unsigned char* sessid = malloc(sizeof(unsigned char*));
