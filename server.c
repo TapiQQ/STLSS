@@ -109,7 +109,7 @@ void configure_context(SSL_CTX *ctx)
 {
     //SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_BOTH);
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
 
     //SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
@@ -175,8 +175,7 @@ int main(int argc, char **argv)
     SSL_SESSION_set_time(session, now);
     SSL_SESSION_print_fp(stdout,session);
 
-
-    //SSL_CTX_add_session(ctx,session);
+    SSL_CTX_add_session(ctx,session);
 
     print_session_statistics(ctx);
 
@@ -202,7 +201,6 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
-	//SSL_CTX_add_session(ctx, session);
 
 	//Force set session, seems to be the easiest way to force instant resumption
 	//SSL_set_session(ssl, session);
@@ -216,6 +214,7 @@ int main(int argc, char **argv)
             SSL_write(ssl, reply, strlen(reply));
         }
 
+	//SSL_CTX_add_session(ctx, SSL_get1_session(ssl));
 
 
         //Check session reuse
@@ -251,7 +250,11 @@ int main(int argc, char **argv)
 
 	print_session_statistics(ctx);
 
-	SSL_SESSION_print_fp(stdout, SSL_get_session(ssl));
+	SSL_SESSION_print_fp(stdout, SSL_get1_session(ssl));
+
+
+	//Internal Cache Stats
+	//OPENSSL_LH_node_usage_stats( (OPENSSL_LHASH *) SSL_CTX_sessions(ctx) ,stdout);
 
 	/* retrieve the session with ssl_scache_retrieve
 	const unsigned char* sessid = malloc(sizeof(unsigned char*));
