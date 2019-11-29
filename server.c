@@ -47,6 +47,14 @@ static SSL_SESSION *get_session_cb(struct ssl_st *ssl, const unsigned char *data
     return NULL;
 }
 
+static int hello_get_session_id(SSL *s, int *al, void *arg){
+	printf("!!! HELLO GET SESSION ID !!!\n");
+
+	SSL_client_hello_get0_session_id(s, arg);
+
+	return 1;
+}
+
 int create_socket(int port)
 {
     int s;
@@ -131,6 +139,7 @@ void configure_context(SSL_CTX *ctx)
     SSL_CTX_sess_set_remove_cb(ctx, remove_session_cb);
     SSL_CTX_sess_set_get_cb(ctx, get_session_cb);
 
+
 }
 
 void print_session_statistics(SSL_CTX *ctx)
@@ -161,6 +170,7 @@ int main(int argc, char **argv)
     int asn1_size;
     FILE *sessionfile;
     time_t now = time(0);
+    const unsigned char **sessid = malloc(sizeof(const unsigned char**));
 
     init_openssl();
     ctx = create_context();
@@ -168,14 +178,16 @@ int main(int argc, char **argv)
     configure_context(ctx);
 
 
-    // LOAD SESSION FROM PEM FILE
+
+    /* LOAD SESSION FROM PEM FILE
     sessionfile = fopen("sessionfile.pem", "rb");
     session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
     fclose(sessionfile);
     SSL_SESSION_set_time(session, now);
     SSL_SESSION_print_fp(stdout,session);
+    */
 
-    SSL_CTX_add_session(ctx,session);
+    //SSL_CTX_add_session(ctx,session);
 
     print_session_statistics(ctx);
 
@@ -201,6 +213,8 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
+	SSL_CTX_set_client_hello_cb(ctx, hello_get_session_id, sessid);
+
 
 	//Force set session, seems to be the easiest way to force instant resumption
 	//SSL_set_session(ssl, session);
@@ -214,8 +228,7 @@ int main(int argc, char **argv)
             SSL_write(ssl, reply, strlen(reply));
         }
 
-	//SSL_CTX_add_session(ctx, SSL_get1_session(ssl));
-
+	printf("sessid: %s\n", *sessid);
 
         //Check session reuse
         if(SSL_session_reused(ssl) == 1){
