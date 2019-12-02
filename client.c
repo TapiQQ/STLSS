@@ -247,13 +247,13 @@ void main()
 	init_openssl();
 
 
-	// LOAD SESSION FROM PEM FILE
+	/* LOAD SESSION FROM PEM FILE
         sessionfile = fopen("sessionfile.pem", "rb");
         session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
         fclose(sessionfile);
 	SSL_SESSION_set_time(session, now);
 	SSL_SESSION_print_fp(stdout, session);
-
+	*/
 
 
 	while(1){
