@@ -32,6 +32,8 @@ int ssl_scache_store(SSL_SESSION *sess, int timeout){
 	SCI.ucaKey = SSL_SESSION_get_id(sess, max_session_id_length);
 	SCI.nKey = var;
 
+	printf("ssl_scache_store session-id: %x\n", SCI.ucaKey);
+
 	SCI.ucaData = b = buf;
 	SCI.nData = i2d_SSL_SESSION(sess, &b);
 	SCI.tExpiresAt = timeout;
@@ -56,8 +58,11 @@ SSL_SESSION *ssl_scache_retrieve(unsigned char *id, int idlen){
 	SCI.nData = 0;
 	SCI.tExpiresAt = 0;
 
+	printf("ssl_scache_retrieve session-id: %x\n", SCI.ucaKey);
+
 	//query
 	ssl_scache_dbm_retrieve(&SCI);
+
 
 	//Return if not found
 	if(SCI.ucaData == NULL){
