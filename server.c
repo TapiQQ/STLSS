@@ -28,7 +28,7 @@ static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
         unsigned int *max_session_id_length = &var;
 
 
-	printf("%x\n", SSL_SESSION_get_id(session, max_session_id_length));
+	//printf("%x\n", SSL_SESSION_get_id(session, max_session_id_length));
 
 
 	// store the session
@@ -37,12 +37,6 @@ static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
 	if(r == 1){
 		printf("New session successfully stored\n");
 	}
-
-        // retrieve the session with ssl_scache_retrieve
-        const unsigned char* sessid = malloc(sizeof(unsigned char*));
-        sessid = SSL_SESSION_get_id(session, max_session_id_length);
-        session = ssl_scache_retrieve((unsigned char *)sessid, 32);
-
 
 
 	return 0;
@@ -145,9 +139,9 @@ void configure_context(SSL_CTX *ctx)
 {
     //SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_SERVER);
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_SERVER | SSL_SESS_CACHE_NO_AUTO_CLEAR | SSL_SESS_CACHE_NO_INTERNAL);
 
-    //SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
+    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
     SSL_CTX_set_session_id_context(ctx, (void *)&ssl_session_ctx_id, sizeof(ssl_session_ctx_id));
 
@@ -219,7 +213,7 @@ int main(int argc, char **argv)
 
     print_session_statistics(ctx);
 
-    SSL_CTX_set_client_hello_cb(ctx, hello_get_session_id, sessid);
+    //SSL_CTX_set_client_hello_cb(ctx, hello_get_session_id, sessid);
 
 
     sock = create_socket(4433);
@@ -256,6 +250,8 @@ int main(int argc, char **argv)
 	    printf("Received message: '%s'\n", buf);
             SSL_write(ssl, reply, strlen(reply));
         }
+
+	//SSL_CTX_add_session(ctx, SSL_get1_session(ssl));
 
 	//printf("sessid: %d\n", sessid);
 
