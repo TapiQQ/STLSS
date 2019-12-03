@@ -131,6 +131,7 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 	if(session != NULL){
 		if(VERBOSE == 1){	printf("non-NULL session, setting session\n");	}
 		err = SSL_set_session(ssl, session);
+		SSL_SESSION_free(session);
 		if(VERBOSE == 1){	printf("SSL_set_session return value: %d\n", err);	}
 	}
 
@@ -195,9 +196,7 @@ SSL_SESSION *create_ssl_connection(int sock, SSL_SESSION *session, char *msg)
 
 
         //SAVE SESSION
-        if(session == NULL){
-                session = SSL_get1_session(ssl);
-        }
+        session = SSL_get1_session(ssl);
 
 
 	//Communicate connection shutdown
