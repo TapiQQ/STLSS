@@ -245,16 +245,6 @@ void main()
 
 	init_openssl();
 
-
-	/* LOAD SESSION FROM PEM FILE
-        sessionfile = fopen("sessionfile.pem", "rb");
-        session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
-        fclose(sessionfile);
-	SSL_SESSION_set_time(session, now);
-	SSL_SESSION_print_fp(stdout, session);
-	*/
-
-
 	while(1){
 	        printf ("IP address of the SSL server: ");
         	fgets (addr, 10, stdin);
@@ -265,13 +255,6 @@ void main()
 		close_socket(sock);
 
 	}
-
-	/* SAVE SESSION TO PEM FILE
-	sessionfile = fopen("sessionfile.pem", "wb");
-	PEM_write_SSL_SESSION(sessionfile, session);
-	fclose(sessionfile);
-	SSL_SESSION_print_fp(stdout,session);
-	*/
 
 	if(VERBOSE == 1){	printf("Success!\n");	}
 }
