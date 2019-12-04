@@ -11,7 +11,7 @@
 #define ON	1
 #define OFF	0
 
-#define VERBOSE	1
+#define VERBOSE	0
 
 static int ssl_session_ctx_id = 69;
 
@@ -21,7 +21,7 @@ static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
 {
 	int r;
 
-	printf("!!! NEW SESSION CB !!!\n");
+	if(VERBOSE == 1){	printf("!!! NEW SESSION CB !!!\n");	}
 
         unsigned int var = 32;
 
@@ -34,7 +34,7 @@ static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
 	// store the session
 	r = ssl_scache_store(session,10000);
 
-	if(r == 1){
+	if(r == 1 && VERBOSE == 1){
 		printf("New session successfully stored\n");
 	}
 
@@ -44,20 +44,20 @@ static int new_session_cb(struct ssl_st *ssl, SSL_SESSION *session)
 
 static void remove_session_cb(struct ssl_ctx_st *ctx, SSL_SESSION *sess)
 {
-    printf("!!! REMOVE SESSION CB !!!\n");
+    if(VERBOSE == 1){	printf("!!! REMOVE SESSION CB !!!\n");	}
     return;
 }
 
 static SSL_SESSION *get_session_cb(struct ssl_st *ssl, const unsigned char *data, int len, int *copy)
 {
-    printf("!!! GET SESSION CB !!!\n");
+    if(VERBOSE == 1){	printf("!!! GET SESSION CB !!!\n");	}
 
     SSL_SESSION *session;
 
     session = ssl_scache_retrieve((unsigned char *)data, len);
 
     if(session != NULL){
-	printf("ssl_scache_retrieve successful!\n");
+	if(VERBOSE == 1){	printf("ssl_scache_retrieve successful!\n");	}
     }
     else{
 	printf("ssl_scache_retrieve returned NULL!\n");
@@ -66,15 +66,6 @@ static SSL_SESSION *get_session_cb(struct ssl_st *ssl, const unsigned char *data
     *copy = 0;
 
     return session;
-}
-
-static int hello_get_session_id(SSL *s, int *al, void *arg){
-	printf("!!! HELLO GET SESSION ID !!!\n");
-
-	SSL_client_hello_get0_session_id(s, arg);
-
-
-	return 1;
 }
 
 int create_socket(int port)
@@ -199,22 +190,7 @@ int main(int argc, char **argv)
 
     configure_context(ctx);
 
-
-
-    /* LOAD SESSION FROM PEM FILE
-    sessionfile = fopen("sessionfile.pem", "rb");
-    session = PEM_read_SSL_SESSION(sessionfile, sess, NULL, NULL);
-    fclose(sessionfile);
-    SSL_SESSION_set_time(session, now);
-    SSL_SESSION_print_fp(stdout,session);
-    */
-
-    //SSL_CTX_add_session(ctx,session);
-
-    print_session_statistics(ctx);
-
-    //SSL_CTX_set_client_hello_cb(ctx, hello_get_session_id, sessid);
-
+    //print_session_statistics(ctx);
 
     sock = create_socket(4433);
     printf("Server started on port 4433\n");
@@ -238,9 +214,6 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
-	//Force set session, seems to be the easiest way to force instant resumption
-	//SSL_set_session(ssl, session);
-
 
         if (SSL_accept(ssl) <= 0) {
             ERR_print_errors_fp(stderr);
@@ -250,13 +223,6 @@ int main(int argc, char **argv)
 	    printf("Received message: '%s'\n", buf);
             SSL_write(ssl, reply, strlen(reply));
         }
-
-	//SSL_CTX_add_session(ctx, SSL_get1_session(ssl));
-
-	//printf("sessid: %d\n", sessid);
-
-        //int copy = 1;
-        //get_session_cb(ssl, *sessid, strlen(*sessid), &copy); 
 
 
         //Check session reuse
@@ -280,38 +246,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-
-	/* SAVE SESSION TO PEM FILE
-        session = SSL_get1_session(ssl);
-	sessionfile = fopen("sessionfile.pem", "wb");
-	PEM_write_SSL_SESSION(sessionfile,session);
-	fclose(sessionfile);
-	SSL_SESSION_print_fp(stdout,session);
-	*/
-
-
 	print_session_statistics(ctx);
 
 	SSL_SESSION_print_fp(stdout, SSL_get1_session(ssl));
-
-
-	//Internal Cache Stats
-	//OPENSSL_LH_node_usage_stats( (OPENSSL_LHASH *) SSL_CTX_sessions(ctx) ,stdout);
-
-	/* retrieve the session with ssl_scache_retrieve
-	const unsigned char* sessid = malloc(sizeof(unsigned char*));
-        unsigned int *max_session_id_length;
-        unsigned int var = 32;
-        max_session_id_length = &var;
-	session = SSL_get1_session(ssl);
-	sessid = SSL_SESSION_get_id(session, max_session_id_length);
-	session = ssl_scache_retrieve((unsigned char *)sessid, 32);
-	*/
-
-
-
-
-	//ERR_print_errors_fp(stdout);
 
         SSL_free(ssl);
         close(client);
